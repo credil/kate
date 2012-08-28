@@ -13,21 +13,10 @@ module PayPalSDKCallers
     include PayPalSDKUtils
     attr_reader :ssl_strict
 
-    # to make long names shorter for easier access and to improve readability define the following variables
-    @@profile = PayPalSDKProfiles::Profile
-
-    # Proxy server information hash
-    @@pi=@@profile.proxy_info
-
-    # client information such as version, source hash
-    @@ci=@@profile.client_info
-
-    #@@PayPalLog=PayPalSDKUtils::Logger.getLogger('PayPal.log')
-
     # CTOR
     def initialize(ssl_verify_mode=false)
       @ssl_strict = ssl_verify_mode
-      @@profile =PayPalSDKProfiles::Profile.new
+      @@profile   ||= PayPalSDKProfiles::Profile.new
     end
 
     # This method uses HTTP::Net library to talk to PayPal
@@ -52,36 +41,59 @@ module PayPalSDKCallers
     def config
       @@profile.config
     end
+    
+    def endpoints
+      @@profile.endpoints
+    end
+    def profile
+      @@profile
+    end
 
     def call(requesth)
-      req_data= "#{hash2cgiString(requesth)}"
-      if (@@profile.m_use_proxy)
+      #if (@@profile.m_use_proxy)
         #if( @@pi["USER"].nil? || @@pi["PASSWORD"].nil? )
-        #  http = Net::HTTP::Proxy(@@pi["ADDRESS"],@@pi["PORT"]).new(@@profile.endpoints["serverURL"], @@pi["PORT"])
+        #  http = Net::HTTP::Proxy(@@pi["ADDRESS"],@@pi["PORT"]).new(endpoints["serverURL"], @@pi["PORT"])
         #else
-        #  http = Net::HTTP::Proxy(@@pi["ADDRESS"],@@pi["PORT"],@@pi["USER"], @@pi["PASSWORD"]).new(@@profile.endpoints["SERVER"], @@pi["PORT"])
+        #  http = Net::HTTP::Proxy(@@pi["ADDRESS"],@@pi["PORT"],@@pi["USER"], @@pi["PASSWORD"]).new(endpoints["SERVER"], @@pi["PORT"])
         #end
-      else
-        http = Net::HTTP.new(@@profile.endpoints["SERVER"],
-                             @@profile.endpoints["PORT"])
+      #else
+
+      transaction = false
+
+      Net::HTTP.start(endpoints["SERVER"],
+		      endpoints["PORT"], :use_ssl => true) do |http|
+
+	http.verify_mode    = OpenSSL::SSL::VERIFY_NONE #unless ssl_strict
+	http.use_ssl = true;
+	
+	req = Net::HTTP::Post.new(endpoints["SERVICE"])
+	req.set_form_data(requesth)
+
+	paypallog.info "#{endpoints["SERVER"]}\n"
+	paypallog.info "#{Time.now.strftime("%a %m/%d/%y %H:%M %Z")}- SENT:"
+	paypallog.info "#{req.body}"
+	
+	response = http.request(req)
+
+	paypallog.info "\n"
+	paypallog.info "#{Time.now.strftime("%a %m/%d/%y %H:%M %Z")}- RECEIVED:"
+	paypallog.info "#{response.body}"
+
+	#case response
+	#when Net::HTTPSuccess then
+	#  response
+	#when Net::HTTPRedirection then
+	#  location = response['location']
+	#  warn "redirected to #{location}"
+	#  fetch(location, limit - 1)
+	#else
+	#  response.value
+	#end
+
+	data = CGI::parse(response.body)
+	transaction = Transaction.new(data)
       end
-
-      http.verify_mode    = OpenSSL::SSL::VERIFY_NONE #unless ssl_strict
-      http.use_ssl = true;
-      maskedrequest = mask_data(req_data)
-
-      paypallog.info "\n"
-      paypallog.info "#{Time.now.strftime("%a %m/%d/%y %H:%M %Z")}- SENT:"
-      paypallog.info "#{CGI.unescape(maskedrequest)}"
-
-      contents,unparseddata = http.post2(@@profile.endpoints["SERVICE"],
-                                         req_data, headers)
-      paypallog.info "\n"
-      paypallog.info "#{Time.now.strftime("%a %m/%d/%y %H:%M %Z")}- RECEIVED:"
-      paypallog.info "#{CGI.unescape(unparseddata)}"
-
-      data = CGI::parse(unparseddata)
-      transaction = Transaction.new(data)
+      return transaction
     end
 
     def paypallog

@@ -6,27 +6,14 @@ module PayPalSDKProfiles
     cattr_accessor :endpoints
     cattr_accessor :client_info
     cattr_accessor :proxy_info
-    cattr_accessor :DEV_CENTRAL_URL
     cattr_accessor :client_details
-    cattr_accessor :PAYPAL_Redirect_URL
-
-
-    #Developer central URL
-    @@DEV_CENTRAL_URL="https://developer.paypal.com"
-    @@PAYPAL_Redirect_URL="https://www.sandbox.paypal.com/webscr?cmd="
-
-    ###############################################################################################################################
-    #    NOTE: Production code should NEVER expose API credentials in any way! They must be managed securely in your application.
-    #    To generate a Sandbox API Certificate, follow these steps: https://www.paypal.com/IntegrationCenter/ic_certificate.html
-    ###############################################################################################################################
-    # specify the 3-token values.
 
     def headers
       @headers ||= {
         "X-PAYPAL-SERVICE-VERSION" => "1.0.0",
-        "X-PAYPAL-SECURITY-USERID"   => config[:security_userid],
-        "X-PAYPAL-SECURITY-PASSWORD" => config[:security_password],
-        "X-PAYPAL-SECURITY-SIGNATURE"=> config[:security_signature],
+        "X-PAYPAL-SECURITY-USERID"   => config["security_userid"],
+        "X-PAYPAL-SECURITY-PASSWORD" => config["security_password"],
+        "X-PAYPAL-SECURITY-SIGNATURE"=> config["security_signature"],
         "X-PAYPAL-APPLICATION-ID" => "APP-80W284485P519543T",
         "X-PAYPAL-DEVICE-IPADDRESS"=>"127.0.0.1" ,
         "X-PAYPAL-REQUEST-DATA-FORMAT" => "NV" ,
@@ -36,10 +23,10 @@ module PayPalSDKProfiles
 
     def endpoints
       # endpoint of PayPal server against which call will be made.
-      @@endpoints ||= {
-        "SERVER"  => config[:nvp_server],
-        "PORT"    => config[:nvp_port],
-        "SERVICE" => config[:nvp_service],
+      @endpoints ||= {
+        "SERVER"  => config["nvp_server"],
+        "PORT"    => config["nvp_port"],
+        "SERVICE" => config["nvp_service"],
       }
     end
 
@@ -75,7 +62,7 @@ module PayPalSDKProfiles
     end
 
     def m_use_proxy
-      @config[:USE_PROXY]
+      @config["USE_PROXY"]
     end
   end
 
