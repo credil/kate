@@ -19,30 +19,15 @@ module PayPalSDKCallers
     # Proxy server information hash
     @@pi=@@profile.proxy_info
 
-    # merchant credentials hash
-    @@cre=@@profile.headers
-
     # client information such as version, source hash
     @@ci=@@profile.client_info
-
-    # endpoints of PayPal hash
-    @@ep=@@profile.endpoints
 
     #@@PayPalLog=PayPalSDKUtils::Logger.getLogger('PayPal.log')
 
     # CTOR
     def initialize(ssl_verify_mode=false)
       @ssl_strict = ssl_verify_mode
-      @@headers =@@cre
-      @profile =PayPalSDKProfiles::Profile.new
-    end
-
-    # Condition to test whether header value "X-PAYPAL-REQUEST-SOURCE" is available
-    @@headers =@@cre
-    if  (@@headers.has_key?("X-PAYPAL-REQUEST-SOURCE"))
-      @@headers["X-PAYPAL-REQUEST-SOURCE"]="RUBY_NVP_SDK_V1.0" + "- " + @@headers["X-PAYPAL-REQUEST-SOURCE"]
-    else
-      @@headers["X-PAYPAL-REQUEST-SOURCE"]= "RUBY_NVP_SDK_V1.0"
+      @@profile =PayPalSDKProfiles::Profile.new
     end
 
     # This method uses HTTP::Net library to talk to PayPal
@@ -60,37 +45,54 @@ module PayPalSDKCallers
     # made via a proxy sever, set USE_PROXY flag to true and specify
     # proxy server and port information in the profile class.
 
+    def headers
+      @@profile.headers
+    end
+
+    def config
+      @@profile.config
+    end
 
     def call(requesth)
       req_data= "#{hash2cgiString(requesth)}"
-      if (@profile.m_use_proxy)
-        if( @@pi["USER"].nil? || @@pi["PASSWORD"].nil? )
-          http = Net::HTTP::Proxy(@@pi["ADDRESS"],@@pi["PORT"]).new(@@ep["serverURL"], @@pi["PORT"])
-        else
-          http = Net::HTTP::Proxy(@@pi["ADDRESS"],@@pi["PORT"],@@pi["USER"], @@pi["PASSWORD"]).new(@@ep["SERVER"], @@pi["PORT"])
-        end
+      if (@@profile.m_use_proxy)
+        #if( @@pi["USER"].nil? || @@pi["PASSWORD"].nil? )
+        #  http = Net::HTTP::Proxy(@@pi["ADDRESS"],@@pi["PORT"]).new(@@profile.endpoints["serverURL"], @@pi["PORT"])
+        #else
+        #  http = Net::HTTP::Proxy(@@pi["ADDRESS"],@@pi["PORT"],@@pi["USER"], @@pi["PASSWORD"]).new(@@profile.endpoints["SERVER"], @@pi["PORT"])
+        #end
       else
-        http = Net::HTTP.new(@@ep["SERVER"], @@ep["PORT"])
+        http = Net::HTTP.new(@@profile.endpoints["SERVER"],
+                             @@profile.endpoints["PORT"])
       end
 
       http.verify_mode    = OpenSSL::SSL::VERIFY_NONE #unless ssl_strict
       http.use_ssl = true;
       maskedrequest = mask_data(req_data)
 
-      @@PayPalLog ||= Logger.new('log/PayPal.log')
-      @@PayPalLog.info "\n"
-      @@PayPalLog.info "#{Time.now.strftime("%a %m/%d/%y %H:%M %Z")}- SENT:"
-      @@PayPalLog.info "#{CGI.unescape(maskedrequest)}"
+      paypallog.info "\n"
+      paypallog.info "#{Time.now.strftime("%a %m/%d/%y %H:%M %Z")}- SENT:"
+      paypallog.info "#{CGI.unescape(maskedrequest)}"
 
-      contents,unparseddata = http.post2(@@ep["SERVICE"],req_data,@@headers)
-      @@PayPalLog.info "\n"
-      @@PayPalLog.info "#{Time.now.strftime("%a %m/%d/%y %H:%M %Z")}- RECEIVED:"
-      @@PayPalLog.info "#{CGI.unescape(unparseddata)}"
+      contents,unparseddata = http.post2(@@profile.endpoints["SERVICE"],
+                                         req_data, headers)
+      paypallog.info "\n"
+      paypallog.info "#{Time.now.strftime("%a %m/%d/%y %H:%M %Z")}- RECEIVED:"
+      paypallog.info "#{CGI.unescape(unparseddata)}"
 
       data = CGI::parse(unparseddata)
       transaction = Transaction.new(data)
     end
+
+    def paypallog
+      self.class.paypallog
+    end
+
+    def self.paypallog
+      @@PayPalLog ||= Logger.new('log/PayPal.log')
+    end
   end
+
 
   # Wrapper class to wrap response hash from PayPal as an object and
   # to provide nice helper methods

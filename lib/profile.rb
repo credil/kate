@@ -3,7 +3,6 @@
 
 module PayPalSDKProfiles
   class Profile
-    cattr_accessor :headers
     cattr_accessor :endpoints
     cattr_accessor :client_info
     cattr_accessor :proxy_info
@@ -22,21 +21,27 @@ module PayPalSDKProfiles
     ###############################################################################################################################
     # specify the 3-token values.
 
-    @@headers = {
-      "X-PAYPAL-SERVICE-VERSION" => "1.0.0",
-      "X-PAYPAL-SECURITY-USERID" =>
-      "platfo_1255077030_biz_api1.gmail.com",
-      "X-PAYPAL-SECURITY-PASSWORD" =>"1255077037",
-      "X-PAYPAL-SECURITY-SIGNATURE" =>
-      "Abg0gYcQyxQvnf2HDJkKtA-p6pqhA1k-KTYE0Gcy1diujFio4io5Vqjf",
-      "X-PAYPAL-APPLICATION-ID" => "APP-80W284485P519543T",
-      "X-PAYPAL-DEVICE-IPADDRESS"=>"127.0.0.1" ,
-      "X-PAYPAL-REQUEST-DATA-FORMAT" => "NV" ,
-      "X-PAYPAL-RESPONSE-DATA-FORMAT" => "NV"}
+    def headers
+      @headers ||= {
+        "X-PAYPAL-SERVICE-VERSION" => "1.0.0",
+        "X-PAYPAL-SECURITY-USERID"   => config[:security_userid],
+        "X-PAYPAL-SECURITY-PASSWORD" => config[:security_password],
+        "X-PAYPAL-SECURITY-SIGNATURE"=> config[:security_signature],
+        "X-PAYPAL-APPLICATION-ID" => "APP-80W284485P519543T",
+        "X-PAYPAL-DEVICE-IPADDRESS"=>"127.0.0.1" ,
+        "X-PAYPAL-REQUEST-DATA-FORMAT" => "NV" ,
+        "X-PAYPAL-RESPONSE-DATA-FORMAT" => "NV"
+      }
+    end
 
-
-    # endpoint of PayPal server against which call will be made.
-    @@endpoints = {"SERVER" => "svcs.sandbox.paypal.com", "PORT" => "443", "SERVICE" =>""}
+    def endpoints
+      # endpoint of PayPal server against which call will be made.
+      @@endpoints ||= {
+        "SERVER"  => config[:nvp_server],
+        "PORT"    => config[:nvp_port],
+        "SERVICE" => config[:nvp_service],
+      }
+    end
 
     #Client details to be send in request
     @@client_details ={"ipAddress"=>"127.0.0.1", "deviceId"=>"mydevice", "applicationId"=>"APP-80W284485P519543T"}
@@ -62,7 +67,11 @@ module PayPalSDKProfiles
     end
 
     def config
-      @config ||= YAML.load_file("#{::Rails.root.to_s}/config/paypal.yml")
+      unless @config
+        yaml = YAML.load_file("#{::Rails.root.to_s}/config/paypal.yml")
+        @config = yaml[RAILS_ENV]
+      end
+      @config
     end
 
     def m_use_proxy
