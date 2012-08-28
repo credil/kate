@@ -34,14 +34,14 @@ module PayPalSDKCallers
     # made via a proxy sever, set USE_PROXY flag to true and specify
     # proxy server and port information in the profile class.
 
-    def headers
-      @@profile.headers
+    def credentials
+      @@profile.credentials
     end
 
     def config
       @@profile.config
     end
-    
+
     def endpoints
       @@profile.endpoints
     end
@@ -50,6 +50,9 @@ module PayPalSDKCallers
     end
 
     def call(requesth)
+      requesth.merge! credentials
+
+      # note: Net::HTTP::Proxy() will return Net::HTTP if PROXY is nil.
       #if (@@profile.m_use_proxy)
         #if( @@pi["USER"].nil? || @@pi["PASSWORD"].nil? )
         #  http = Net::HTTP::Proxy(@@pi["ADDRESS"],@@pi["PORT"]).new(endpoints["serverURL"], @@pi["PORT"])
@@ -65,14 +68,14 @@ module PayPalSDKCallers
 
 	http.verify_mode    = OpenSSL::SSL::VERIFY_NONE #unless ssl_strict
 	http.use_ssl = true;
-	
+
 	req = Net::HTTP::Post.new(endpoints["SERVICE"])
 	req.set_form_data(requesth)
 
 	paypallog.info "#{endpoints["SERVER"]}\n"
 	paypallog.info "#{Time.now.strftime("%a %m/%d/%y %H:%M %Z")}- SENT:"
 	paypallog.info "#{req.body}"
-	
+
 	response = http.request(req)
 
 	paypallog.info "\n"
@@ -110,7 +113,7 @@ module PayPalSDKCallers
   # to provide nice helper methods
   class Transaction
     def initialize(data)
-     @success = data["responseEnvelope.ack"].to_s != "Failure"
+     @success = data["ACK"].to_s != "Failure"
      @response = data
    end
     def success?
