@@ -9,6 +9,7 @@ module PayPalSDKProfiles
     cattr_accessor :client_details
 
     def credentials
+      return nil unless config
       @credentials ||= {
         "USER"     => config["security_userid"],
         "PWD"      => config["security_password"],
@@ -18,6 +19,7 @@ module PayPalSDKProfiles
     end
 
     def endpoints
+      return nil unless config
       # endpoint of PayPal server against which call will be made.
       @endpoints ||= {
         "SERVER"  => config["nvp_server"],
@@ -53,6 +55,7 @@ module PayPalSDKProfiles
       unless @config
         yaml = YAML.load_file("#{::Rails.root.to_s}/config/paypal.yml")
         @config = yaml[RAILS_ENV]
+	raise Exception unless @config
       end
       @config
     end
