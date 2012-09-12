@@ -54,7 +54,7 @@ module PayPalSDKProfiles
     def config
       unless @config
         yaml = YAML.load_file("#{::Rails.root.to_s}/config/paypal.yml")
-        @config = yaml[RAILS_ENV]
+        @config = yaml[::Rails.env]
 	raise Exception unless @config
       end
       @config
