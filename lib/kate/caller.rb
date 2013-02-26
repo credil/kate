@@ -1,8 +1,8 @@
 require 'net/http'
 require 'net/https'
 require 'uri'
-require 'profile'
-require 'utils'
+require 'kate/profile'
+require 'kate/utils'
 require 'logger'
 
 # The module has a class and a wrapper method wrapping NET:HTTP methods to simplify calling PayPal APIs.
